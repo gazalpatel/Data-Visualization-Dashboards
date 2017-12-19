@@ -21,7 +21,7 @@ Sidebar{.sidebar}
 fileInput(inputId = "metadata", label = "Please Upload a CSV file")
 ```
 
-EDA
+Summary
 =======================================
 
 Row
@@ -73,11 +73,6 @@ Row
 uiOutput("dropdown_numeric")
 ```
 
-### cluster slider
-
-```{r}
-uiOutput("cluster_group_slider")
-```
 
 ### Scatter
 
@@ -86,11 +81,6 @@ plotOutput("scatter")
 ```
 
 
-### kmeans
-
-```{r}
-tableOutput("kmeans")
-```
 
 Row
 --------------------------------------
@@ -199,18 +189,18 @@ if(is.null(input$metadata))
   sliderInput(inputId = "cluster_groups",label = "select group numbers", min = 0,max=100,
             value = 5)})
   
-   output$kmeans = renderTable({
-                               data_num = data[,numeric_col]
-                               df = na.omit(data_num)
-                               kmeans(df, centers = input$cluster_groups) -> fit
-                               
-                               table(fit$cluster)
-                               #ggplot(df,
-                               #       aes_string(x =input$dropdown_num[1]),
-                               #                  y = input$dropdown_num[2],
-                               #                  col = fit$cluster) +
-                               #geom_point()
-                               })
+   # output$kmeans = renderTable({
+   #                             data_num = data[,numeric_col]
+   #                             df = na.omit(data_num)
+   #                             kmeans(df, centers = input$cluster_groups) -> fit
+   #                             
+   #                             table(fit$cluster)
+   #                             #ggplot(df,
+   #                             #       aes_string(x =input$dropdown_num[1]),
+   #                             #                  y = input$dropdown_num[2],
+   #                             #                  col = fit$cluster) +
+   #                             #geom_point()
+   #                             })
       
   # dashboard category
   output$dropdown_categories =  renderUI({
@@ -246,19 +236,64 @@ if(is.null(input$metadata))
 
 ```
 
+
+K means
+=======================================
+
+Row
+--------------------------------------
+
+### kmeans
+
 ```{r}
-path = "D:/STUDY/DSC\ 404\ Data\ Visualisation/data/odi-batting/odi-batting.csv"
-odi=read.csv(path)
+tableOutput("kmeans")
+```
 
-col = "Country"
+Row {data-height=300}
+--------------------------------------
 
-# group_by_ let us use dynamic variable or string constant which will be matched to all column names and then result is shown
+### cluster slider
 
-odi %>%
-  group_by_(col) %>%
-  summarise(n = n()) %>%
-  arrange(-n) %>% 
-  head(10)
+```{r}
+uiOutput("cluster_group_slider")
+```
+
+
+```{r}
+observe({ 
+if(is.null(input$metadata))
+  return(NULL)
+  data = read.csv(input$metadata$datapath)
+  numeric_col = sapply(data,is.numeric)
+ output$kmeans = renderTable({
+                               data_num = data[,numeric_col]
+                               df = na.omit(data_num)
+                               kmeans(df, centers = input$cluster_groups) -> fit
+                               
+                               table(fit$cluster)
+                               #ggplot(df,
+                               #       aes_string(x =input$dropdown_num[1]),
+                               #                  y = input$dropdown_num[2],
+                               #                  col = fit$cluster) +
+                               #geom_point()
+                               })
+})
+ 
+```
+
+```{r}
+# path = "D:/STUDY/DSC\ 404\ Data\ Visualisation/data/odi-batting/odi-batting.csv"
+# odi=read.csv(path)
+# 
+# col = "Country"
+# 
+# # group_by_ let us use dynamic variable or string constant which will be matched to all column names and then result is shown
+# 
+# odi %>%
+#   group_by_(col) %>%
+#   summarise(n = n()) %>%
+#   arrange(-n) %>% 
+#   head(10)
 ```
 
 
