@@ -1,0 +1,370 @@
+---
+title: "Cricket Analysis"
+runtime: shiny
+output:
+  flexdashboard::flex_dashboard:
+    orientation: rows
+---
+
+```{r}
+library(shiny)
+library(shinydashboard)
+library(dplyr)
+library(ggplot2)
+library(tree)
+```
+
+Sidebar{.sidebar}
+================================================
+```{r}
+# browse button in sidebar
+fileInput(inputId = "metadata", label = "Please Upload a CSV file")
+```
+
+EDA
+=======================================
+
+Row
+--------------------------------------
+
+### Number of rows
+```{r}
+textOutput("total_rows")
+```
+
+### Number of columns
+
+```{r}
+textOutput("total_cols")
+```
+
+### Column names
+```{r}
+tableOutput("column_names")
+```
+
+###Numeric
+```{r}
+tableOutput("numeric_columns")
+```
+
+###categorical
+```{r}
+tableOutput("categorical_columns")
+```
+
+Row
+--------------------------------------
+
+### abc
+
+```{r}
+
+```
+
+Numeric Columns
+=======================================
+
+Row
+--------------------------------------
+### Dropdowns
+
+```{r}
+uiOutput("dropdown_numeric")
+```
+
+### cluster slider
+
+```{r}
+uiOutput("cluster_group_slider")
+```
+
+### Scatter
+
+```{r}
+plotOutput("scatter")
+```
+
+
+### kmeans
+
+```{r}
+tableOutput("kmeans")
+```
+
+Row
+--------------------------------------
+### Histogram
+
+```{r}
+plotOutput("histogram")
+```
+
+### Boxplot
+
+```{r}
+plotOutput("boxplot")
+```
+
+
+Categorical Columns
+=======================================
+
+Row {data-height=300}
+--------------------------------------
+
+### Dropdowns
+
+```{r}
+uiOutput("dropdown_categories")
+```
+
+### console
+```{r}
+textOutput("console")
+```
+
+### consol
+```{r}
+textOutput("console2")
+```
+
+Row {data-height=300}
+--------------------------------------
+
+### Frequency Distribution
+
+```{r}
+# for renderTable output type
+#tableOutput("freq_category")
+
+plotOutput("freq_category")
+
+```
+
+```{r}
+observe({ 
+if(is.null(input$metadata))
+  return(NULL)
+  data = read.csv(input$metadata$datapath)
+
+  # dashboard 1
+  output$data_preview = renderTable(head(data))
+  output$total_cols = renderText(ncol(data))
+  output$total_rows = renderText(nrow(data))
+  
+  output$column_names = renderTable(names(data))
+  numeric_col = sapply(data,is.numeric)
+  
+  num_cols = names(data)[numeric_col]
+  cat_cols = names(data)[!numeric_col]
+  
+  output$numeric_columns = renderTable(num_cols)
+  output$categorical_columns = renderTable(cat_cols)
+  
+  
+  output$dropdown_columns=renderUI({ 
+                                    selectInput(inputId = "dropdown_columns",
+                                    label ='select a column',
+                                    choices = names(data))
+                                  })
+    
+  # dashboard numeric
+  output$dropdown_numeric = renderUI({
+                                      selectInput(inputId = "dropdown_nums",
+                                      label = "select category",
+                                      choices = num_cols,
+                                      multiple = T)
+                                      })
+  
+  output$boxplot = renderPlot({
+                              boxplot(data[,input$dropdown_nums])
+                          })
+  
+  output$scatter = renderPlot({
+                              ggplot(data, aes_string(x = input$dropdown_nums[1],
+                                                      y = input$dropdown_nums[2],
+                                                      col = input$dropdown_cats[1])) +
+                              geom_point()
+                          })
+  
+  output$histogram = renderPlot({
+                              hist(data[,input$dropdown_nums])
+                              #ggplot(data, aes(x = input$dropdown_nums)) +
+                              #geom_histogram()
+                          })
+  
+
+  output$cluster_group_slider = renderUI({
+  sliderInput(inputId = "cluster_groups",label = "select group numbers", min = 0,max=100,
+            value = 5)})
+  
+   output$kmeans = renderTable({
+                               data_num = data[,numeric_col]
+                               df = na.omit(data_num)
+                               kmeans(df, centers = input$cluster_groups) -> fit
+                               
+                               table(fit$cluster)
+                               #ggplot(df,
+                               #       aes_string(x =input$dropdown_num[1]),
+                               #                  y = input$dropdown_num[2],
+                               #                  col = fit$cluster) +
+                               #geom_point()
+                               })
+      
+  # dashboard category
+  output$dropdown_categories =  renderUI({
+                                          selectInput(inputId = "dropdown_cats",
+                                          label = "select category",
+                                          choices = cat_cols)
+                                        })
+  
+  output$freq_category = renderPlot({
+                                      data %>%
+                                      group_by_(input$dropdown_cats) %>%
+                                      summarise(count_item = n()) %>%
+                                      arrange(-count_item) %>%
+                                      head(5) -> item_freq
+                                      
+                                      order(item_freq$count_item) -> i
+                                      
+                                      #item_freq[do.call(order,
+                                      #item_freq[item_freq$count_item]), ] -> i
+    
+                                      ggplot(item_freq,
+                                           aes_string(x = reorder(input$dropdown_cats,i),
+                                                      y = 'count_item')) +
+                                      geom_bar(stat = "identity")
+                                    })
+
+
+     output$console = renderText({""})
+  
+    output$console2 = renderText("")
+})
+
+
+```
+
+```{r}
+path = "D:/STUDY/DSC\ 404\ Data\ Visualisation/data/odi-batting/odi-batting.csv"
+odi=read.csv(path)
+
+col = "Country"
+
+# group_by_ let us use dynamic variable or string constant which will be matched to all column names and then result is shown
+
+odi %>%
+  group_by_(col) %>%
+  summarise(n = n()) %>%
+  arrange(-n) %>% 
+  head(10)
+```
+
+
+Decision Tree
+=======================================
+
+Row {data-height=300}
+--------------------------------------
+
+### Decision Tree Input
+
+```{r}
+uiOutput("decision_input")
+```
+
+### Decision Tree target
+
+```{r}
+uiOutput("decision_target")
+```
+
+Row {data-height=300}
+--------------------------------------
+
+### Plot Tree
+
+```{r}
+plotOutput("decision_tree")
+```
+
+### Accuracy
+```{r}
+textOutput("tree_accuracy")
+```
+
+```{r}
+model_accuracy = 0
+observe({ 
+if(is.null(input$metadata))
+  return(NULL)
+  data = read.csv(input$metadata$datapath)
+
+  # target(response) var -> accel & others feature variables
+  data_size = nrow(data)
+
+  set.seed(111)
+  ## 75% of the sample size
+  smp_size <- floor(0.75 * data_size)
+  train_index <- sample(seq_len(data_size), size = smp_size)
+
+  train <- data[train_index, ]
+  test <- data[-train_index, ]
+
+  output$decision_input = renderUI({ 
+                                    selectInput(inputId = "dt_input",
+                                    label ='select columns',
+                                    choices = names(data),
+                                    multiple = T)
+                                  })
+    
+  # dashboard numeric
+  output$decision_target = renderUI({
+                                      selectInput(inputId = "dt_target",
+                                      label = "select target",
+                                      choices = names(data))
+                                      })
+  
+  
+  output$decision_tree = renderPlot({
+                                      fit = decision_tree(input$dt_input,
+                                                          input$dt_target,
+                                                          train)
+                                      plot(fit)
+                                      text(fit)
+                             
+                                    })
+  
+  output$tree_accuracy = renderText({
+       decision_tree_accuracy(decision_tree(input$dt_input,
+                                            input$dt_target,
+                                            train),
+                              input$dt_target,
+                               test)
+    
+    })
+  
+  })
+
+decision_tree = function(independent, dependent, train)
+{
+  fit_eqn = paste(independent, collapse = " + ")
+  fit_eqn = paste(dependent, fit_eqn, sep = "~")
+  model_tree = tree(fit_eqn, data = train)      
+                                     
+  return(model_tree)
+}
+
+decision_tree_accuracy = function(model_tree, dependent, test)
+{
+  model_prediction = predict(model_tree,test)
+  confmat =  table(model_prediction, test[,dependent])
+  model_accuracy = sum(diag(confmat))*100/sum(confmat)
+  return(model_accuracy)
+}
+
+```
+
+
+
